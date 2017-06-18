@@ -32,11 +32,11 @@ import android.widget.ToggleButton;
 public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener {
 
     private ImageButton mBtnMediaPlayPause, mBtnMediaPrev, mBtnMediaNext;
+    private ToggleButton mBtnMediaRepeat;
 
-    //private ToggleButton mBtnMediaRepeat;
 
     private MediaPlayer mMediaPlayer = null;
-    
+
     private Boolean mbIsInitialised = true;
 
     @Override
@@ -45,8 +45,9 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
         setContentView(R.layout.activity_main);
 
         mBtnMediaPlayPause = (ImageButton)findViewById(R.id.btnMediaPlayPause);
-        mBtnMediaPrev = (ImageButton)findViewById(R.id.prev);
-        mBtnMediaNext = (ImageButton)findViewById(R.id.next);
+        mBtnMediaPrev = (ImageButton)findViewById(R.id.btnPrev);
+        mBtnMediaNext = (ImageButton)findViewById(R.id.btnNext);
+        mBtnMediaRepeat = (ToggleButton) findViewById(R.id.btnRepeat);
 
         mBtnMediaPlayPause.setOnClickListener(btnMediaPlayPauseOnClick);
         mBtnMediaPrev.setOnClickListener(btnMediaPrevOnClick);
@@ -83,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
     @Override
     public void onCompletion(MediaPlayer mediaPlayer) {
+        mediaPlayer.stop();
+        mbIsInitialised = true;
         mBtnMediaPlayPause.setImageResource(android.R.drawable.ic_media_play);
     }
 
@@ -138,6 +141,17 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
         @Override
         public void onClick(View v) {
 
+        }
+    };
+
+    private View.OnClickListener btnMediaRepeatOnClick = new View.OnClickListener() {
+
+        @Override
+        public void onClick(View v) {
+            if (((ToggleButton)v).isChecked())
+                mMediaPlayer.setLooping(true);
+            else
+                mMediaPlayer.setLooping(false);
         }
     };
 }

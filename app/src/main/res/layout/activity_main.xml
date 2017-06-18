@@ -34,7 +34,7 @@
             android:orientation="horizontal">
 
             <ImageButton
-                android:id="@+id/prev"
+                android:id="@+id/btnPrev"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@android:drawable/ic_media_previous" />
@@ -46,10 +46,16 @@
                 android:src="@android:drawable/ic_media_play" />
 
             <ImageButton
-                android:id="@+id/next"
+                android:id="@+id/btnNext"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@android:drawable/ic_media_next" />
+
+            <ToggleButton
+                android:id="@+id/btnRepeat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:drawable/ic_menu_revert" />
 
         </LinearLayout>
     </LinearLayout>
