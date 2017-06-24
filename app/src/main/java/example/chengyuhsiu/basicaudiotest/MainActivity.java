@@ -46,9 +46,12 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
     private Boolean mbIsInitialised = true;
 
-    private final int REQUEST_PERMISSION_FOR_READ_EXTERNAL_STORAGE = 100;
+    private final int REQUEST_PERMISSION_FOR_WRITE_EXTERNAL_STORAGE = 100;
 
     private String TAG="BasicAudioTest";
+
+    private ArrayList<Song> songList;
+    private ListView songView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,19 +66,32 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
         mBtnMediaPlayPause.setOnClickListener(btnMediaPlayPauseOnClick);
         mBtnMediaPrev.setOnClickListener(btnMediaPrevOnClick);
         mBtnMediaNext.setOnClickListener(btnMediaNextOnClick);
+        mBtnMediaRepeat.setOnClickListener(btnMediaRepeatOnClick);
 
-        Log.e(TAG, "before read external permission");
-        askForReadExternalStoragePermission();
-        Log.e(TAG, "after read external permission");
+        askForWriteExternalStoragePermission();
+
+        songView = (ListView)findViewById(R.id.song_list);
+        songList = new ArrayList<Song>();
+        getSongList();
+
+        Collections.sort(songList, new Comparator<Song>() {
+            @Override
+            public int compare(Song song, Song song2) {
+                return song.getTitle().compareTo(song2.getTitle());
+            }
+        });
+
+        SongAdapter songAdt = new SongAdapter(this, songList);
+        songView.setAdapter(songAdt);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions, @NonNull int[] grantResults) {
         // 檢查收到的權限要求編號是否和我們送出的相同
-        if (requestCode == REQUEST_PERMISSION_FOR_READ_EXTERNAL_STORAGE) {
+        if (requestCode == REQUEST_PERMISSION_FOR_WRITE_EXTERNAL_STORAGE) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(MainActivity.this, "取得 READ_EXTERNAL_STORAGE 權限", Toast.LENGTH_SHORT)
+                Toast.makeText(MainActivity.this, "取得 WRITE_EXTERNAL_STORAGE 權限", Toast.LENGTH_SHORT)
                         .show();
                 return;
             }
@@ -180,22 +196,26 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
         @Override
         public void onClick(View v) {
-            if (((ToggleButton)v).isChecked())
+            Log.e(TAG, "Try to set repeat");
+            if (((ToggleButton)v).isChecked()) {
                 mMediaPlayer.setLooping(true);
-            else
+                //Log.e(TAG, "set repeat true");
+            } else {
                 mMediaPlayer.setLooping(false);
+                //Log.e(TAG, "set repeat false");
+            }
         }
     };
 
-    private void askForReadExternalStoragePermission() {
+    private void askForWriteExternalStoragePermission() {
         if (ContextCompat.checkSelfPermission(MainActivity.this,
-                android.Manifest.permission.READ_EXTERNAL_STORAGE) !=
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
                 PackageManager.PERMISSION_GRANTED) {
             // 這項功能尚未取得使用者的同意
             // 開始執行徵詢使用者的流程
             if (ActivityCompat.shouldShowRequestPermissionRationale(
                     MainActivity.this,
-                    android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                 AlertDialog.Builder altDlgBuilder =
                         new AlertDialog.Builder(MainActivity.this);
                 altDlgBuilder.setTitle("提示");
@@ -210,25 +230,51 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
                                 // 使用者答覆後會執行onRequestPermissionsResult()
                                 ActivityCompat.requestPermissions(MainActivity.this,
                                         new String[]{
-                                                android.Manifest.permission.READ_EXTERNAL_STORAGE},
-                                        REQUEST_PERMISSION_FOR_READ_EXTERNAL_STORAGE);
+                                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                        REQUEST_PERMISSION_FOR_WRITE_EXTERNAL_STORAGE);
                             }
                         });
                 altDlgBuilder.show();
-                Log.e(TAG, "askForReadExternal 1");
                 return;
             } else {
                 // 顯示詢問使用者是否同意功能權限的對話盒
                 // 使用者答覆後會執行onRequestPermissionsResult()
                 ActivityCompat.requestPermissions(MainActivity.this,
                         new String[]{
-                                android.Manifest.permission.READ_EXTERNAL_STORAGE},
-                        REQUEST_PERMISSION_FOR_READ_EXTERNAL_STORAGE);
-                Log.e(TAG, "askForReadExternal 2");
+                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        REQUEST_PERMISSION_FOR_WRITE_EXTERNAL_STORAGE);
                 return;
             }
-        } else {
-            Log.e(TAG, "Going wrong way");
         }
+    }
+
+    public void getSongList() {
+        ContentResolver musicResolver = getContentResolver();
+        Uri mUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        Cursor musicCursor = musicResolver.query(mUri,null, null, null, null);
+
+        if(musicCursor!=null && musicCursor.moveToFirst()){
+            //get columns
+            int titleColumn = musicCursor.getColumnIndex
+                    (android.provider.MediaStore.Audio.Media.TITLE);
+            int idColumn = musicCursor.getColumnIndex
+                    (android.provider.MediaStore.Audio.Media._ID);
+            int artistColumn = musicCursor.getColumnIndex
+                    (android.provider.MediaStore.Audio.Media.ARTIST);
+            //add songs to list
+            do {
+                long thisId = musicCursor.getLong(idColumn);
+                String thisTitle = musicCursor.getString(titleColumn);
+                String thisArtist = musicCursor.getString(artistColumn);
+                songList.add(new Song(thisId, thisTitle, thisArtist));
+            } while (musicCursor.moveToNext());
+        }
+    }
+
+    public void songPicked(View view) {
+        Log.e(TAG, "song picked test");
+        int curFile;
+        curFile = Integer.parseInt(view.getTag().toString());
+        Log.e(TAG, "song picked test" + curFile);
     }
 }
