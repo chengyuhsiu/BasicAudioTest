@@ -1,5 +1,6 @@
 package example.chengyuhsiu.basicaudiotest;
 
+import android.content.ContentUris;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
@@ -18,6 +19,8 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.MediaController.MediaPlayerControl;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -41,7 +44,6 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
     private ImageButton mBtnMediaPlayPause, mBtnMediaPrev, mBtnMediaNext;
     private ToggleButton mBtnMediaRepeat;
 
-
     private MediaPlayer mMediaPlayer = null;
 
     private Boolean mbIsInitialised = true;
@@ -52,12 +54,14 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
     private ArrayList<Song> songList;
     private ListView songView;
+    private int song_id = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Log.e(TAG, "onCreate()");
         mBtnMediaPlayPause = (ImageButton)findViewById(R.id.btnMediaPlayPause);
         mBtnMediaPrev = (ImageButton)findViewById(R.id.btnPrev);
         mBtnMediaNext = (ImageButton)findViewById(R.id.btnNext);
@@ -103,29 +107,18 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
     @Override
     protected void onResume() {
         super.onResume();
-
+        Log.e(TAG, "onResume()");
         mMediaPlayer = new MediaPlayer();
-
-        Uri uri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.song);
-
-        try {
-            mMediaPlayer.setDataSource(this, uri);
-        } catch (Exception e) {
-            Toast.makeText(MainActivity.this, "指定的音樂檔錯誤！", Toast.LENGTH_LONG)
-                    .show();
-        }
 
         mMediaPlayer.setOnPreparedListener(this);
         mMediaPlayer.setOnErrorListener(this);
         mMediaPlayer.setOnCompletionListener(this);
-
-
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-
+        Log.e(TAG, "onStop()");
         mMediaPlayer.release();
         mMediaPlayer = null;
     }
@@ -133,8 +126,7 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
     @Override
     public void onCompletion(MediaPlayer mediaPlayer) {
         mediaPlayer.stop();
-        mbIsInitialised = true;
-        mBtnMediaPlayPause.setImageResource(android.R.drawable.ic_media_play);
+        Log.e(TAG, "onCompletion()");
     }
 
     @Override
@@ -161,17 +153,15 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
         @Override
         public void onClick(View v) {
+            Log.e(TAG, "btnMediaPlayPaueOnClick start");
             if (mMediaPlayer.isPlaying()) {
                 mBtnMediaPlayPause.setImageResource(android.R.drawable.ic_media_play);
                 mMediaPlayer.pause();
+                Log.e(TAG, "btnMediaPlayPauseOnClick pause");
             } else {
                 mBtnMediaPlayPause.setImageResource(android.R.drawable.ic_media_pause);
-
-                if (mbIsInitialised) {
-                    mMediaPlayer.prepareAsync();
-                    mbIsInitialised = false;
-                } else
-                    mMediaPlayer.start();
+                Log.e(TAG, "btnMediaPlayPauseOnClick : go to playSong()");
+                playSong();
             }
         }
     };
@@ -180,7 +170,14 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
         @Override
         public void onClick(View v) {
-
+            Log.e(TAG, "btnMediaPrev song_id=" + song_id);
+            if (song_id > 0) {
+                song_id--;
+                Log.e(TAG, "btnMediaPrev 2 song_id=" + song_id);
+            } else {
+                song_id = 0;
+            }
+            playSong();
         }
     };
 
@@ -188,7 +185,14 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
         @Override
         public void onClick(View v) {
+            Log.e(TAG, "btnMediaPrev song list size=" + songList.size());
 
+            if (song_id < songList.size()-1) {
+                song_id++;
+            } else {
+                song_id = songList.size() - 1;
+            }
+            playSong();
         }
     };
 
@@ -199,10 +203,8 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
             Log.e(TAG, "Try to set repeat");
             if (((ToggleButton)v).isChecked()) {
                 mMediaPlayer.setLooping(true);
-                //Log.e(TAG, "set repeat true");
             } else {
                 mMediaPlayer.setLooping(false);
-                //Log.e(TAG, "set repeat false");
             }
         }
     };
@@ -211,8 +213,6 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
         if (ContextCompat.checkSelfPermission(MainActivity.this,
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
                 PackageManager.PERMISSION_GRANTED) {
-            // 這項功能尚未取得使用者的同意
-            // 開始執行徵詢使用者的流程
             if (ActivityCompat.shouldShowRequestPermissionRationale(
                     MainActivity.this,
                     android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
@@ -226,8 +226,6 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
-                                // 顯示詢問使用者是否同意功能權限的對話盒
-                                // 使用者答覆後會執行onRequestPermissionsResult()
                                 ActivityCompat.requestPermissions(MainActivity.this,
                                         new String[]{
                                                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
@@ -237,8 +235,6 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 altDlgBuilder.show();
                 return;
             } else {
-                // 顯示詢問使用者是否同意功能權限的對話盒
-                // 使用者答覆後會執行onRequestPermissionsResult()
                 ActivityCompat.requestPermissions(MainActivity.this,
                         new String[]{
                                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
@@ -246,6 +242,35 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 return;
             }
         }
+    }
+
+    private void playSong(){
+        Song playSong = songList.get(song_id);
+        long currSong = playSong.getID();
+        String songTitle = playSong.getTitle();
+
+        Log.e(TAG, "playSong() : " + mMediaPlayer.isPlaying());
+        // joe : how to avoid first time play error
+        // if add this back, a bug play -> pause -> play failed
+        //if (mMediaPlayer.isPlaying()) {
+            mMediaPlayer.stop();
+            mMediaPlayer.reset();
+        //}
+
+        Log.e(TAG, "playSong(): " + currSong + " title: " + songTitle);
+        Uri trackUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currSong);
+        try {
+            mMediaPlayer.setDataSource(this, trackUri);
+            mMediaPlayer.prepare();
+            mMediaPlayer.start();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public void getSongList() {
@@ -272,9 +297,13 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnPre
     }
 
     public void songPicked(View view) {
-        Log.e(TAG, "song picked test");
-        int curFile;
-        curFile = Integer.parseInt(view.getTag().toString());
-        Log.e(TAG, "song picked test" + curFile);
+        song_id = Integer.parseInt(view.getTag().toString());
+        Log.e(TAG, "song picked test " + song_id + " playing " + mMediaPlayer.isPlaying());
+
+        if (mMediaPlayer.isPlaying() == false) {
+            Log.e(TAG, "songPicked set to pause");
+            mBtnMediaPlayPause.setImageResource(android.R.drawable.ic_media_pause);
+        }
+        playSong();
     }
 }
